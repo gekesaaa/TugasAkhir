@@ -1,0 +1,85 @@
+/* --- STYLING HEADER ATAS --- */
+.custom-header-container {
+  background-color: #0d0d0d;
+  border: 1px solid #212121;
+  border-radius: 12px;
+  padding: 18px 25px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.header-title-text {
+  font-size: 1.35rem;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+/* --- SCROLL BOX --- */
+.scrollable-chat-column {
+  height: 52vh !important;
+  overflow-y: auto !important;
+  background-color: #1c1c1e !important;
+  border: 1px solid #2c2c2e !important;
+  border-radius: 14px !important;
+  padding: 20px !important;
+}
+
+.scrollable-chat-column::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollable-chat-column::-webkit-scrollbar-thumb {
+  background: #2c2c2e;
+  border-radius: 10px;
+}
+
+.column-title-label {
+  font-size: 1.05rem;
+  font-weight: bold;
+  padding: 10px;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.label-predict {
+  color: #34c759;
+  background-color: rgba(52, 199, 89, 0.08);
+  border: 1px solid rgba(52, 199, 89, 0.15);
+}
+
+.label-gemini {
+  color: #0a84ff;
+  background-color: rgba(10, 132, 255, 0.08);
+  border: 1px solid rgba(10, 132, 255, 0.15);
+}
+
+/* --- FLOATING CHAT INPUT --- */
+div[data-testid="stChatInput"] {
+  position: fixed !important;
+  bottom: 25px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: 60% !important;
+  z-index: 999999 !important;
+  background-color: #1e1e24 !important;
+  border-radius: 35px !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5) !important;
+}
+
+div[data-testid="stChatInput"] textarea {
+  background-color: transparent !important;
+  border: none !important;
+}
+
+.stChatInputContainer {
+  padding-bottom: 0px !important;
+  padding-top: 0px !important;
+}
+
+footer {
+  display: none !important;
+}

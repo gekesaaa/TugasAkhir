@@ -1,0 +1,45 @@
+div[data-testid="stHorizontalBlock"]:has(button[p-button-variant]) {
+  gap: 0px !important;
+}
+
+div[data-testid="stColumn"]:has(button[p-button-variant]) button {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-radius: 6px !important;
+  font-weight: 400 !important;
+  font-size: 1rem !important;
+  transition: all 0.2s ease-in-out;
+}
+
+div[data-testid="stColumn"] button[p-button-variant="primary"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 1px solid #ff3b30 !important;
+  color: #ff453a !important;
+  box-shadow: 0 0 10px rgba(255, 59, 48, 0.2) !important;
+}
+
+div[data-testid="stColumn"] button[p-button-variant="secondary"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 1px solid #2c2c2e !important;
+  color: #8e8e93 !important;
+}
+
+div[data-testid="stColumn"] button[p-button-variant="primary"]:hover,
+div[data-testid="stColumn"] button[p-button-variant="primary"]:active,
+div[data-testid="stColumn"] button[p-button-variant="primary"]:focus {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #ff453a !important;
+  border-color: #ff3b30 !important;
+}
+
+div[data-testid="stColumn"] button[p-button-variant="secondary"]:hover,
+div[data-testid="stColumn"] button[p-button-variant="secondary"]:active,
+div[data-testid="stColumn"] button[p-button-variant="secondary"]:focus {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #ff453a !important;
+  border-color: #ff453a !important;
+}
