@@ -380,9 +380,9 @@ def load_resources():
     # =========================
     # rte_model_path = "checkpoint-343355"
     rte_model_path = "model-rte"
-    tokenizer = AutoTokenizer.from_pretrained("gekesa/model-rte")
+    tokenizer = AutoTokenizer.from_pretrained("gekesa/rte")
     rte_model = AutoModelForSequenceClassification.from_pretrained(
-        "gekesa/model-rte"
+        "gekesa/rte"
     )
 
     rte_model.eval()
