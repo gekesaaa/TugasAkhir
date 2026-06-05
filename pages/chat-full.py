@@ -355,9 +355,13 @@ def load_resources():
 
     try:
         nltk.data.find('tokenizers/punkt')
+    except LookupError:
+        nltk.download('punkt')
 
-    except:
-        nltk.download("punkt")
+    try:
+        nltk.data.find('tokenizers/punkt_tab')
+    except LookupError:
+        nltk.download('punkt_tab')
 
     # =========================
     # KNOWLEDGE BASE
