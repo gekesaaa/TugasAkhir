@@ -52,6 +52,7 @@ def get_supabase():
         return None
 
 supabase = get_supabase()
+st.write("SUPABASE LOADED")
 
 # =====================================================
 # AUTH FUNCTIONS
