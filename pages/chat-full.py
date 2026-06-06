@@ -52,7 +52,7 @@ def get_supabase():
         return None
 
 supabase = get_supabase()
-st.write("SUPABASE LOADED")
+
 
 # =====================================================
 # AUTH FUNCTIONS
@@ -180,6 +180,15 @@ def save_chat(user_id, conv_id, q, a, url):
         })
         .execute()
     )
+
+def update_conversation_title(conv_id, title):
+
+    supabase.table("conversations").update({
+        "title": title
+    }).eq(
+        "id",
+        conv_id
+    ).execute()
 
 
 # =====================================================
@@ -994,16 +1003,10 @@ if question := st.chat_input("Tulis pertanyaan..."):
             st.session_state.user["id"]
         )
 
-        conn.execute(
-            """
-            UPDATE conversations
-            SET title=?
-            WHERE id=?
-            """,
-            (question[:50], conv_id)
+        update_conversation_title(
+            conv_id,
+            question[:50]
         )
-
-        conn.commit()
 
         st.session_state.current_conv = conv_id
 
