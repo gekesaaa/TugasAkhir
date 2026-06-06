@@ -13,7 +13,6 @@ import faiss
 import json
 import numpy as np
 import nltk
-import sqlite3
 import hashlib
 import torch
 import pandas as pd
@@ -29,6 +28,8 @@ from transformers import (
 from google import genai
 from google.genai import types
 
+from supabase import create_client
+
 
 # =====================================================
 # LOAD CSS
@@ -37,55 +38,6 @@ def load_css(file_name):
     with open(file_name, encoding="utf-8") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-
-# =====================================================
-# DATABASE CONNECTION
-# =====================================================
-def get_db():
-    conn = sqlite3.connect("database.db", check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-conn = get_db()
-
-
-# =====================================================
-# INIT DATABASE
-# =====================================================
-def init_db():
-
-    conn.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT
-    )
-    """)
-
-    conn.execute("""
-    CREATE TABLE IF NOT EXISTS conversations (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        title TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
-
-    conn.execute("""
-    CREATE TABLE IF NOT EXISTS chat_history (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        conversation_id INTEGER,
-        question TEXT,
-        answer TEXT,
-        source_url TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
-
-    conn.commit()
-
-init_db()
 
 
 # =====================================================
@@ -98,27 +50,32 @@ def hash_password(password):
 def register(username, password):
 
     try:
-        conn.execute(
-            "INSERT INTO users (username, password) VALUES (?, ?)",
-            (username, hash_password(password))
-        )
 
-        conn.commit()
+        supabase.table("users").insert({
+            "username": username,
+            "password": hash_password(password)
+        }).execute()
+
         return True
 
-    except:
+    except Exception:
         return False
 
 
 def login(username, password):
 
-    user = conn.execute(
-        "SELECT * FROM users WHERE username=?",
-        (username,)
-    ).fetchone()
+    result = (
+        supabase
+        .table("users")
+        .select("*")
+        .eq("username", username)
+        .execute()
+    )
 
-    if not user:
+    if not result.data:
         return "NOT_FOUND"
+
+    user = result.data[0]
 
     if user["password"] != hash_password(password):
         return "WRONG_PASSWORD"
@@ -129,45 +86,64 @@ def login(username, password):
 # CONVERSATION FUNCTIONS
 # =====================================================
 def create_conversation(user_id):
-    cursor = conn.execute(
-        "INSERT INTO conversations (user_id, title) VALUES (?, ?)",
-        (user_id, "Chat Baru")
+
+    result = (
+        supabase
+        .table("conversations")
+        .insert({
+            "user_id": user_id,
+            "title": "Chat Baru"
+        })
+        .execute()
     )
-    conn.commit()
-    return cursor.lastrowid
+
+    return result.data[0]["id"]
 
 
 def get_conversations(user_id):
-    return conn.execute("""
-        SELECT c.*
-        FROM conversations c
-        JOIN chat_history h ON c.id = h.conversation_id
-        WHERE c.user_id=?
-        GROUP BY c.id
-        ORDER BY c.created_at DESC
-    """, (user_id,)).fetchall()
+
+    result = (
+        supabase
+        .table("conversations")
+        .select("*")
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+
+    return result.data
 
 
 def load_chat(conv_id):
+
     if conv_id is None:
         return []
-    rows = conn.execute(
-        """
-        SELECT question, answer, source_url
-        FROM chat_history
-        WHERE conversation_id=?
-        """,
-        (conv_id,)
-    ).fetchall()
+
+    result = (
+        supabase
+        .table("chat_history")
+        .select("*")
+        .eq("conversation_id", conv_id)
+        .order("created_at")
+        .execute()
+    )
+
+    rows = result.data
+
     chat = []
+
     for r in rows:
+
         chat.append({
             "role": "user",
             "content": r["question"]
         })
+
         ans = r["answer"]
+
         if r["source_url"]:
             ans += f"\n\n🔗 {r['source_url']}"
+
         chat.append({
             "role": "assistant",
             "content": ans
@@ -177,15 +153,19 @@ def load_chat(conv_id):
 
 
 def save_chat(user_id, conv_id, q, a, url):
-    conn.execute(
-        """
-        INSERT INTO chat_history
-        (user_id, conversation_id, question, answer, source_url)
-        VALUES (?, ?, ?, ?, ?)
-        """,
-        (user_id, conv_id, q, a, url)
+
+    (
+        supabase
+        .table("chat_history")
+        .insert({
+            "user_id": user_id,
+            "conversation_id": conv_id,
+            "question": q,
+            "answer": a,
+            "source_url": url
+        })
+        .execute()
     )
-    conn.commit()
 
 
 # =====================================================
@@ -284,16 +264,17 @@ if st.session_state.user is None:
                     key="btn_execute_login"
                 ):
                     result = login(u_login, p_login)
-                    if isinstance(result, sqlite3.Row):
-                        st.session_state.user = dict(result)
-                        st.success("Login berhasil!")
-                        st.rerun()
 
-                    elif result == "NOT_FOUND":
+                    if result == "NOT_FOUND":
                         st.error("Akun belum terdaftar.")
 
                     elif result == "WRONG_PASSWORD":
-                        st.error("Password yang Anda masukkan salah.")
+                        st.error("Username atau Password yang Anda masukkan salah.")
+
+                    else:
+                        st.session_state.user = result
+                        st.success("Login berhasil!")
+                        st.rerun()
                 
                 st.markdown(
                     "<div style='margin-top: 15px; padding-bottom: 15px;'> "
@@ -351,6 +332,15 @@ if st.session_state.user is None:
 # LOAD RESOURCES
 # =====================================================
 @st.cache_resource
+def get_supabase():
+
+    url = st.secrets["SUPABASE_URL"]
+    key = st.secrets["SUPABASE_KEY"]
+
+    return create_client(url, key)
+
+supabase = get_supabase()
+
 def load_resources():
 
     try:
