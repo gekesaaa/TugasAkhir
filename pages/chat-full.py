@@ -1024,7 +1024,7 @@ else:
                     }
 
                     st.switch_page(
-                        "pages/perbandingan-hasil.py"
+                        "perbandingan-hasil.py"
                     )
 
 
