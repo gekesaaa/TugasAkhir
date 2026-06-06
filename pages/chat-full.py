@@ -17,6 +17,7 @@ import hashlib
 import torch
 import pandas as pd
 import time
+import logging
 
 from nltk.tokenize import sent_tokenize
 from sentence_transformers import SentenceTransformer
@@ -30,7 +31,13 @@ from google.genai import types
 
 from supabase import create_client
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s"
+)
 
+def log_step(msg):
+    print(f"[INFO] {msg}", flush=True)
 # =====================================================
 # LOAD CSS
 # =====================================================
@@ -357,41 +364,73 @@ if st.session_state.user is None:
 @st.cache_resource
 def load_resources():
 
+    log_step("START LOAD RESOURCES")
+
+    # NLTK
+    log_step("Checking NLTK punkt")
+
     try:
         nltk.data.find('tokenizers/punkt')
     except LookupError:
+        log_step("Downloading punkt")
         nltk.download('punkt')
 
     try:
         nltk.data.find('tokenizers/punkt_tab')
     except LookupError:
+        log_step("Downloading punkt_tab")
         nltk.download('punkt_tab')
+
+    # JSON
+    log_step("Loading knowledge-base.json")
 
     # =========================
     # KNOWLEDGE BASE
     # =========================
     df = pd.read_json("knowledge-base.json")
-    embeddings = np.load("embeddingsDown.npy")
-    index = faiss.read_index("faissDown.index")
+    log_step(f"Knowledge base loaded: {len(df)} rows")
 
+        # EMBEDDING
+    log_step("Loading embeddings")
+    embeddings = np.load("embeddingsDown.npy")
+    log_step(
+        f"Embeddings loaded shape={embeddings.shape}"
+    )
+
+    # FAISS
+    log_step("Loading FAISS index")
+    index = faiss.read_index("faissDown.index")
+    log_step(
+        f"FAISS loaded total vectors={index.ntotal}"
+    )
     
 
     # =========================
     # RETRIEVAL MODEL
     # =========================
+    log_step("Loading SentenceTransformer")
     retrieval_model = SentenceTransformer(
         "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
     )
+    log_step("SentenceTransformer loaded")
+
+    
 
     # =========================
     # RTE MODEL
     # =========================
-    # rte_model_path = "checkpoint-343355"
-    rte_model_path = "model-rte"
+    # TOKENIZER
+    log_step("Loading tokenizer")
     tokenizer = AutoTokenizer.from_pretrained("gekesa/rte")
+    log_step("Tokenizer loaded")
+
+    # MODEL
+    log_step("Loading RTE model")
     rte_model = AutoModelForSequenceClassification.from_pretrained(
         "gekesa/rte"
     )
+    log_step("RTE model loaded")
+    log_step("LOAD RESOURCES FINISHED")
 
     rte_model.eval()
 
