@@ -38,6 +38,16 @@ logging.basicConfig(
 
 def log_step(msg):
     print(f"[INFO] {msg}", flush=True)
+
+import os
+
+st.write("Current file:", __file__)
+
+if st.button("DEBUG FILES"):
+    for root, dirs, files in os.walk("."):
+        for f in files:
+            if f.endswith(".py"):
+                print(os.path.join(root, f))
 # =====================================================
 # LOAD CSS
 # =====================================================
@@ -1024,7 +1034,7 @@ else:
                     }
 
                     st.switch_page(
-                        "perbandingan-hasil.py"
+                        "pages/perbandingan-hasil.py"
                     )
 
 
