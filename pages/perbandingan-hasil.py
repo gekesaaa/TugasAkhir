@@ -321,7 +321,7 @@ with col_predict:
                 f"""
                 <div style='
                 background-color:#2b2b2c;
-                padding:12px;
+                padding:2px;
                 border-radius:8px;
                 margin-bottom:12px;
                 '>
@@ -389,7 +389,7 @@ with col_gemini:
                 f"""
                 <div style='
                 background-color:#1a233a;
-                padding:12px;
+                padding:2px;
                 border-radius:8px;
                 border-left:3px solid #0a84ff;
                 margin-bottom:12px;
