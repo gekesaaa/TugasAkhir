@@ -38,7 +38,20 @@ def load_css(file_name):
     with open(file_name, encoding="utf-8") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
+@st.cache_resource
+def get_supabase():
 
+    try:
+        url = st.secrets["SUPABASE_URL"]
+        key = st.secrets["SUPABASE_KEY"]
+
+        return create_client(url, key)
+
+    except Exception as e:
+        st.error(f"Supabase Error: {e}")
+        return None
+
+supabase = get_supabase()
 
 # =====================================================
 # AUTH FUNCTIONS
@@ -332,20 +345,6 @@ if st.session_state.user is None:
 # LOAD RESOURCES
 # =====================================================
 @st.cache_resource
-def get_supabase():
-
-    try:
-        url = st.secrets["SUPABASE_URL"]
-        key = st.secrets["SUPABASE_KEY"]
-
-        return create_client(url, key)
-
-    except Exception as e:
-        st.error(f"Supabase Error: {e}")
-        return None
-
-supabase = get_supabase()
-
 def load_resources():
 
     try:
