@@ -334,10 +334,15 @@ if st.session_state.user is None:
 @st.cache_resource
 def get_supabase():
 
-    url = st.secrets["SUPABASE_URL"]
-    key = st.secrets["SUPABASE_KEY"]
+    try:
+        url = st.secrets["SUPABASE_URL"]
+        key = st.secrets["SUPABASE_KEY"]
 
-    return create_client(url, key)
+        return create_client(url, key)
+
+    except Exception as e:
+        st.error(f"Supabase Error: {e}")
+        return None
 
 supabase = get_supabase()
 
