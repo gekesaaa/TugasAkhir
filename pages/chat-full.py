@@ -30,6 +30,15 @@ from google import genai
 from google.genai import types
 
 from supabase import create_client
+import psutil
+import os
+
+import uuid
+
+RUN_ID = uuid.uuid4()
+
+print(f"RUN ID : {RUN_ID}")
+print(f"PID = {os.getpid()}")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,6 +47,16 @@ logging.basicConfig(
 
 def log_step(msg):
     print(f"[INFO] {msg}", flush=True)
+
+def show_ram(stage):
+    process = psutil.Process(os.getpid())
+    ram_mb = process.memory_info().rss / 1024 / 1024
+
+    print("\n" + "="*60)
+    print(f"[RAM] {stage}")
+    print(f"PID : {os.getpid()}")
+    print(f"RAM : {ram_mb:.2f} MB")
+    print("="*60)
     
 # =====================================================
 # LOAD CSS
@@ -364,6 +383,7 @@ if st.session_state.user is None:
 # =====================================================
 @st.cache_resource
 def load_resources():
+    print("LOAD RESOURCES EXECUTED")
 
     log_step("START LOAD RESOURCES")
 
@@ -383,7 +403,9 @@ def load_resources():
         nltk.download('punkt_tab')
 
     # JSON
+    show_ram("START")
     log_step("Loading knowledge-base.json")
+    show_ram("AFTER JSON")
 
     # =========================
     # KNOWLEDGE BASE
@@ -394,6 +416,7 @@ def load_resources():
         # EMBEDDING
     log_step("Loading embeddings")
     embeddings = np.load("embeddingsDown.npy")
+    show_ram("AFTER EMBEDDINGS")
     log_step(
         f"Embeddings loaded shape={embeddings.shape}"
     )
@@ -401,6 +424,7 @@ def load_resources():
     # FAISS
     log_step("Loading FAISS index")
     index = faiss.read_index("faissDown.index")
+    show_ram("AFTER FAISS")
     log_step(
         f"FAISS loaded total vectors={index.ntotal}"
     )
@@ -413,6 +437,7 @@ def load_resources():
     retrieval_model = SentenceTransformer(
         "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
     )
+    show_ram("AFTER RETRIEVAL MODEL")
     log_step("SentenceTransformer loaded")
 
     
@@ -423,6 +448,7 @@ def load_resources():
     # TOKENIZER
     log_step("Loading tokenizer")
     tokenizer = AutoTokenizer.from_pretrained("gekesa/rte")
+    show_ram("AFTER TOKENIZER")
     log_step("Tokenizer loaded")
 
     # MODEL
@@ -430,6 +456,9 @@ def load_resources():
     rte_model = AutoModelForSequenceClassification.from_pretrained(
         "gekesa/rte"
     )
+    show_ram("AFTER RTE MODEL")
+
+    show_ram("FINISHED")
     log_step("RTE model loaded")
     log_step("LOAD RESOURCES FINISHED")
 
