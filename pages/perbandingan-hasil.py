@@ -9,10 +9,8 @@
 import streamlit as st
 import numpy as np
 import time
-
 from google import genai
 from google.genai import types
-
 from utils.resources import load_resources
 
 
@@ -47,12 +45,10 @@ GEMINI_KEYS = st.secrets["GEMINI_API_KEYS"]
 if "gemini_key_index" not in st.session_state:
     st.session_state.gemini_key_index = 0
 
-
 def get_gemini_client():
     current_index = st.session_state.gemini_key_index
     api_key = GEMINI_KEYS[current_index]
     return genai.Client(api_key=api_key)
-
 
 def generate_gemini_content(
     prompt,
@@ -94,22 +90,20 @@ def generate_gemini_content(
                 st.session_state.gemini_key_index = (
                     st.session_state.gemini_key_index + 1
                 ) % total_keys
-
                 time.sleep(2)
-
                 continue
-
             raise e
-
     raise Exception(
         "Semua API Gemini habis quota."
     )
+
 
 # =====================================================
 # RESULT STATE
 # =====================================================
 if "last_result" not in st.session_state:
     st.session_state.last_result = None
+
 
 # =====================================================
 # SIDEBAR NAVIGATION
@@ -213,11 +207,6 @@ if (
         "similarity" not in result
     )
 ):
-
-    # status_placeholder.info(
-    # "🤖 Gemini sedang memproses jawaban..."
-    # )
-
     status_placeholder.info(
     "🤖 Sedang Proses Perhitungan Kesamaan"
     )
@@ -242,14 +231,12 @@ if (
     """
 
     try:
-
         answer_gemini = generate_gemini_content(
             gemini_prompt,
             temperature=0.4
         )
 
     except Exception as e:
-
         answer_gemini = (
             f"Error Gemini API: {str(e)}"
         )

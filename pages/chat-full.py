@@ -1,10 +1,3 @@
-# kode yang sedang diusahakan agar dapat memahami konteks percakapan sebelumnya dengan lebih baik. Sehingga jawaban yang diberikan bisa lebih relevan dan tepat sasaran.
-# ditambah halaman supaya bisa langsung akses ke compare
-
-# =====================================================
-# UI UTAMA SISTEM HYBRID RAG + RTE + GEMINI PARAPHRASE
-# =====================================================
-
 # =====================================================
 # IMPORT LIBRARY
 # =====================================================
@@ -48,24 +41,18 @@ def load_css(file_name):
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-
 def register(username, password):
-
     try:
-
         supabase.table("users").insert({
             "username": username,
             "password": hash_password(password)
         }).execute()
-
         return True
 
     except Exception:
         return False
 
-
 def login(username, password):
-
     result = (
         supabase
         .table("users")
@@ -73,22 +60,17 @@ def login(username, password):
         .eq("username", username)
         .execute()
     )
-
     if not result.data:
         return "NOT_FOUND"
-
     user = result.data[0]
-
     if user["password"] != hash_password(password):
         return "WRONG_PASSWORD"
-
     return user
 
 # =====================================================
 # CONVERSATION FUNCTIONS
 # =====================================================
 def create_conversation(user_id):
-
     result = (
         supabase
         .table("conversations")
@@ -98,12 +80,9 @@ def create_conversation(user_id):
         })
         .execute()
     )
-
     return result.data[0]["id"]
 
-
 def get_conversations(user_id):
-
     result = (
         supabase
         .table("conversations")
@@ -112,15 +91,11 @@ def get_conversations(user_id):
         .order("created_at", desc=True)
         .execute()
     )
-
     return result.data
 
-
 def load_chat(conv_id):
-
     if conv_id is None:
         return []
-
     result = (
         supabase
         .table("chat_history")
@@ -129,33 +104,23 @@ def load_chat(conv_id):
         .order("created_at")
         .execute()
     )
-
     rows = result.data
-
     chat = []
-
     for r in rows:
-
         chat.append({
             "role": "user",
             "content": r["question"]
         })
-
         ans = r["answer"]
-
         if r["source_url"]:
             ans += f"\n\n🔗 {r['source_url']}"
-
         chat.append({
             "role": "assistant",
             "content": ans
         })
-
     return chat
 
-
 def save_chat(user_id, conv_id, q, a, url):
-
     (
         supabase
         .table("chat_history")
@@ -170,7 +135,6 @@ def save_chat(user_id, conv_id, q, a, url):
     )
 
 def update_conversation_title(conv_id, title):
-
     supabase.table("conversations").update({
         "title": title
     }).eq(
@@ -266,7 +230,6 @@ if st.session_state.user is None:
                     key="login_pass",
                     placeholder="Masukan password"
                 )
-
                 st.write("")
                 if st.button(
                     "LOGIN",
@@ -278,15 +241,12 @@ if st.session_state.user is None:
 
                     if result == "NOT_FOUND":
                         st.error("Akun belum terdaftar.")
-
                     elif result == "WRONG_PASSWORD":
                         st.error("Username atau Password yang Anda masukkan salah.")
-
                     else:
                         st.session_state.user = result
                         st.success("Login berhasil!")
                         st.rerun()
-                
                 st.markdown(
                     "<div style='margin-top: 15px; padding-bottom: 15px;'> "
                     "<center style='font-size: 0.9rem; color: #8e8e93;'>"
@@ -310,7 +270,6 @@ if st.session_state.user is None:
                     key="reg_pass",
                     placeholder="Masukan password"
                 )
-
                 st.write("")
                 if st.button(
                     "DAFTAR",
@@ -326,7 +285,6 @@ if st.session_state.user is None:
                         st.rerun()
                     else:
                         st.error("Username sudah terdaftar.")
-
                 st.markdown(
                     "<div style='margin-top: 15px; padding-bottom: 15px;'>"
                     "<center style='font-size: 0.9rem; color: #8e8e93;'>"
@@ -338,6 +296,7 @@ if st.session_state.user is None:
 
     st.stop()
 
+
 # =====================================================
 # GEMINI FALLBACK API SYSTEM
 # =====================================================
@@ -347,23 +306,18 @@ GEMINI_KEYS = st.secrets["GEMINI_API_KEYS"]
 if "gemini_key_index" not in st.session_state:
     st.session_state.gemini_key_index = 0
 
-
 def get_gemini_client():
     current_index = st.session_state.gemini_key_index
     api_key = GEMINI_KEYS[current_index]
     return genai.Client(api_key=api_key)
-
 
 def generate_gemini_content(
     prompt,
     temperature=0.1,
     model="gemini-2.5-flash"
 ):
-
-    total_keys = len(GEMINI_KEYS)
-    
+    total_keys = len(GEMINI_KEYS)  
     max_retry = total_keys * 2
-
     for attempt in range(max_retry):
         try:
             client = get_gemini_client()
@@ -397,9 +351,7 @@ def generate_gemini_content(
                 st.session_state.gemini_key_index = (
                     st.session_state.gemini_key_index + 1
                 ) % total_keys
-
                 time.sleep(2)
-
                 continue
             # error lain langsung raise
             raise e
@@ -414,12 +366,10 @@ def generate_gemini_content(
 # LABEL MAP
 # =====================================================
 label_map = rte_model.config.id2label
-
 keterlibatan_index = [
     k for k, v in label_map.items()
     if v.lower() == "keterlibatan"
 ][0]
-
 kontradiksi_index = [
     k for k, v in label_map.items()
     if v.lower() == "kontradiksi"
@@ -430,7 +380,6 @@ kontradiksi_index = [
 # QA FUNCTIONS
 # =====================================================
 def contextualize_question(chat_history, latest_question):
-
     if not chat_history:
         return latest_question
 
@@ -460,13 +409,10 @@ def contextualize_question(chat_history, latest_question):
             prompt,
             temperature=0.1
         )
-
     except:
         return latest_question
 
-
 def is_feedback_correction(text):
-
     feedback_patterns = [
         "bukan itu maksud saya",
         "maksud saya",
@@ -478,18 +424,14 @@ def is_feedback_correction(text):
         "yang saya maksud",
         "bukan seperti itu"
     ]
-
     text = text.lower()
-
     return any(p in text for p in feedback_patterns)
-
 
 def rebuild_query_from_feedback(
     previous_question,
     previous_answer,
     feedback_text
 ):
-
     prompt = f"""
     Anda adalah AI yang bertugas memahami koreksi user.
 
@@ -514,15 +456,12 @@ def rebuild_query_from_feedback(
     """
 
     try:
-
         return generate_gemini_content(
             prompt,
             temperature=0.1
         )
-
     except:
         return feedback_text
-
 
 def generate_hypothesis(question: str) -> str:
     q = question.strip().lower()
@@ -547,13 +486,10 @@ def generate_hypothesis(question: str) -> str:
     if "apa fungsi" in q:
         x = q.replace("apa fungsi", "").strip()
         return f"fungsi {x} adalah"
-
-    # fallback (AMAN)
+    
     return q
 
-
 def compute_rte_score(premise, hypothesis):
-
     inputs = tokenizer(
         premise,
         hypothesis,
@@ -562,20 +498,14 @@ def compute_rte_score(premise, hypothesis):
         padding=True,
         max_length=512
     )
-
     with torch.no_grad():
         logits = rte_model(**inputs).logits
-
     probs = torch.softmax(logits, dim=-1)
-
     keterlibatan = probs[0][keterlibatan_index].item()
     kontradiksi = probs[0][kontradiksi_index].item()
-
     return keterlibatan - kontradiksi
 
-
 def get_rte_label(premise, hypothesis):
-
     inputs = tokenizer(
         premise,
         hypothesis,
@@ -584,35 +514,25 @@ def get_rte_label(premise, hypothesis):
         padding=True,
         max_length=512
     )
-
     with torch.no_grad():
         logits = rte_model(**inputs).logits
-
     probs = torch.softmax(logits, dim=-1)
     label_id = torch.argmax(probs, dim=-1).item()
-
     return label_map[label_id]
 
-
 def extract_best_answer(query, chunk_text, window=2):
-
     sents = sent_tokenize(chunk_text)
-
     if not sents:
         return chunk_text
-
     q_emb = retrieval_model.encode([query])
     s_emb = retrieval_model.encode(sents)
     scores = np.dot(s_emb, q_emb.T).squeeze()
     best_idx = int(np.argmax(scores))
     start = max(0, best_idx - window)
     end = min(len(sents), best_idx + window + 1)
-
     return " ".join(sents[start:end])
 
-
 def paraphrase_answer(question, answer_text):
-
     prompt = f"""
     Anda adalah asisten kesehatan mental.
 
@@ -639,18 +559,14 @@ def paraphrase_answer(question, answer_text):
     """
 
     try:
-
         return generate_gemini_content(
             prompt,
             temperature=0.2
         )
-
     except:
         return answer_text
 
-
 def is_mental_health_question(query):
-
     prompt = f"""
 Anda adalah classifier domain.
 
@@ -665,16 +581,14 @@ Pertanyaan:
 """
 
     try:
-
         result = generate_gemini_content(
             prompt,
             temperature=0
         ).upper()
-
         return result == "YA"
-
     except:
         return True
+
 
 # =====================================================
 # SESSION CHAT
@@ -698,14 +612,11 @@ load_css("styles/main.css")
 # SIDEBAR
 # =====================================================
 with st.sidebar:
-
     st.write("📂 **Recent Conversations**")
-
     if st.button(
         "➕ Percakapan baru",
         use_container_width=True
     ):
-
         st.session_state.current_conv = None
         st.session_state.chat = []
         st.rerun()
@@ -737,7 +648,6 @@ with st.sidebar:
                 use_container_width=True,
                 type="primary" if is_active else "secondary"
             ):
-
                 st.session_state.current_conv = c["id"]
                 st.session_state.chat = load_chat(
                     c["id"]
@@ -750,7 +660,6 @@ with st.sidebar:
 
     if "confirm_logout" not in st.session_state:
         st.session_state.confirm_logout = False
-
     if not st.session_state.confirm_logout:
         if st.button("📤 Logout", use_container_width=True, key="sidebar_logout_trigger"):
             st.session_state.confirm_logout = True
@@ -789,7 +698,6 @@ if (
     and
     not st.session_state.chat
 ):
-
     st.markdown(
         f"""
         <div style='text-align:center;
@@ -807,13 +715,9 @@ if (
         """,
         unsafe_allow_html=True
     )
-
 else:
-
     for msg in st.session_state.chat:
-
         if msg["role"] == "user":
-
             st.markdown(
                 f"""
                 <div class="chat-row-user">
@@ -824,13 +728,10 @@ else:
                 """,
                 unsafe_allow_html=True
             )
-
         else:
-
             full_text = msg["content"]
             main_answer = full_text
             markdown_debug_content = ""
-
             if "⚙️ Debug Info System:" in full_text:
                 parts = full_text.split("---")
                 main_answer = parts[0].strip()
@@ -839,7 +740,6 @@ else:
                     .replace("⚙️ Debug Info System:", "")
                     .strip()
                 )
-
             st.markdown(
                 f"""
                 <div class="chat-row-assistant">
@@ -850,11 +750,10 @@ else:
                 """,
                 unsafe_allow_html=True
             )
-
             if markdown_debug_content:
-
                 with st.expander("⚙️ Debug Info"):
                     st.markdown(markdown_debug_content)
+
 
 # =====================================================
 # TOMBOL ANALISIS HANYA UNTUK JAWABAN TERAKHIR
@@ -862,35 +761,25 @@ else:
             is_last_message = (
                 msg == st.session_state.chat[-1]
             )
-
             if (
                 msg["role"] == "assistant"
                 and is_last_message
             ):
-
                 if st.button(
                     "🔬 Analisis Perbandingan",
                     key="analyze_last",
                     use_container_width=True
                 ):
-
                     last_question = ""
-
                     for m in reversed(st.session_state.chat):
-
                         if m["role"] == "user":
                             last_question = m["content"]
                             break
-
                     # Ambil jawaban assistant terakhir
                     last_answer = ""
-
                     for m in reversed(st.session_state.chat):
-
                         if m["role"] == "assistant":
-
                             last_answer = m["content"]
-
                             # buang debug info
                             if "⚙️ Debug Info System:" in last_answer:
                                 last_answer = (
@@ -898,15 +787,12 @@ else:
                                     .split("---")[0]
                                     .strip()
                                 )
-
                             break
-
                     st.session_state.last_result = {
                         "question": last_question,
                         "predict": last_answer,
                         "url": None
                     }
-
                     st.switch_page(
                         "pages/perbandingan-hasil.py"
                     )
@@ -921,16 +807,13 @@ if question := st.chat_input("Tulis pertanyaan..."):
     # AUTO CREATE CONVERSATION
     # =========================
     if st.session_state.current_conv is None:
-
         conv_id = create_conversation(
             st.session_state.user["id"]
         )
-
         update_conversation_title(
             conv_id,
             question[:50]
         )
-
         st.session_state.current_conv = conv_id
 
     # =========================
@@ -946,7 +829,6 @@ if question := st.chat_input("Tulis pertanyaan..."):
         """,
         unsafe_allow_html=True
     )
-
     st.session_state.chat.append({
         "role": "user",
         "content": question
@@ -977,7 +859,6 @@ if question := st.chat_input("Tulis pertanyaan..."):
             and
             len(st.session_state.chat) >= 2
         ):
-            
             previous_question = ""
             previous_answer = ""
 
@@ -994,14 +875,12 @@ if question := st.chat_input("Tulis pertanyaan..."):
                 if msg["role"] == "assistant":
                     previous_answer = msg["content"]
                     break
-
             query = rebuild_query_from_feedback(
                 previous_question,
                 previous_answer,
                 question
             )
         else:
-
             query = contextualize_question(
                 history_text,
                 question
@@ -1017,10 +896,8 @@ if question := st.chat_input("Tulis pertanyaan..."):
         print("\n" + "="*70)
         print("DEBUG QUERY")
         print("="*70)
-
         print(f"\nPertanyaan Asli:")
         print(question)
-
         print(f"\nQuery Setelah Contextualization:")
         print(query)
 
@@ -1029,9 +906,7 @@ if question := st.chat_input("Tulis pertanyaan..."):
         # DOMAIN VALIDATION
         # =========================
         is_valid_domain = is_mental_health_question(query)
-
         if not is_valid_domain:
-
             final_answer = (
                 f"Maaf, pertanyaan mengenai "
                 f"'{question}' tidak termasuk "
@@ -1091,18 +966,13 @@ if question := st.chat_input("Tulis pertanyaan..."):
         print("="*70)
 
         results = []
-
         retrieval_rank_map = {}
-
         rte_start = time.time()
 
         for i, idx in enumerate(indices[0]):
-
             chunk_text = df.iloc[idx]["text"]
             faiss_score = faiss_scores[0][i]
-
             retrieval_rank_map[df.iloc[idx]["chunk_id"]] = i + 1
-
             print(f"\nRetrieval Rank #{i+1}")
             print(f"Chunk ID     : {df.iloc[idx]['chunk_id']}")
             print(f"FAISS Score  : {faiss_score:.4f}")
@@ -1118,7 +988,6 @@ if question := st.chat_input("Tulis pertanyaan..."):
                 chunk_text,
                 hypothesis
             )
-
             rte_label = get_rte_label(
                 chunk_text,
                 hypothesis
@@ -1178,9 +1047,7 @@ if question := st.chat_input("Tulis pertanyaan..."):
         print("="*70)
 
         for rank, item in enumerate(results, start=1):
-
             old_rank = retrieval_rank_map.get(item["chunk_id"], "-")
-
             print(f"\nFinal Rank #{rank}")
             print(f"Previous Retrieval Rank : {old_rank}")
             print(f"Chunk ID                : {item['chunk_id']}")
@@ -1205,23 +1072,19 @@ if question := st.chat_input("Tulis pertanyaan..."):
         # ANSWER EXTRACTION
         # =========================
         extract_start = time.time()
-
         extracted_answer = extract_best_answer(
             question,
             raw_text
         )
-
         extract_time = time.time() - extract_start
 
         # =========================
         # GEMINI PARAPHRASE
         # =========================
-
         final_answer = paraphrase_answer(
             question,
             extracted_answer
         )
-
         st.session_state.last_result = {
             "question": question,
             "predict": final_answer,
@@ -1244,15 +1107,12 @@ if question := st.chat_input("Tulis pertanyaan..."):
         debug_text += f"- Original Question Tokens: {question_tokens}\n"
         debug_text += f"- Contextualized Query Tokens: {query_tokens}\n\n"
 
-        
 
         for rank, item in enumerate(
             final_results,
             start=1
         ):
-
             debug_text += f"**Rank** {rank}\n"
-
             debug_text += f"- Chunk ID: {item['chunk_id']}\n"
             debug_text += f"- Final Score: {item['final_score']:.4f}\n"
             debug_text += f"- FAISS Score (α) : {item['faiss_score']:.4f}\n"
@@ -1262,7 +1122,6 @@ if question := st.chat_input("Tulis pertanyaan..."):
             debug_text += "Preview:\n"
             debug_text += f"{item['text_result'][:200]}...\n\n"
 
-
         full_assistant_response = final_answer
 
         if url:
@@ -1270,7 +1129,6 @@ if question := st.chat_input("Tulis pertanyaan..."):
                 f"\n\n🔗 "
                 f"[Baca informasi lengkapnya di sini]({url})"
             )
-
         full_assistant_response += (
             f"\n\n---\n"
             f"⚙️ Debug Info System:\n\n"
