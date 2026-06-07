@@ -9,10 +9,11 @@
 import streamlit as st
 import numpy as np
 import time
-from sentence_transformers import SentenceTransformer
 
 from google import genai
 from google.genai import types
+
+from utils.resources import load_resources
 
 
 # =====================================================
@@ -35,13 +36,9 @@ st.set_page_config(
 # =====================================================
 # LOAD RESOURCES & LOGIC MANAGEMENT
 # =====================================================
-@st.cache_resource
-def load_resources():
-    retrieval_model = SentenceTransformer(
-        "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-    )
-    return retrieval_model
-retrieval_model = load_resources()
+resources = load_resources()
+retrieval_model = resources["retrieval_model"]
+
 
 # =====================================================
 # GEMINI FALLBACK API SYSTEM

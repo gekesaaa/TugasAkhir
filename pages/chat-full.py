@@ -9,54 +9,31 @@
 # IMPORT LIBRARY
 # =====================================================
 import streamlit as st
-import faiss
-import json
-import numpy as np
-import nltk
 import hashlib
 import torch
-import pandas as pd
 import time
-import logging
+import numpy as np
 
 from nltk.tokenize import sent_tokenize
-from sentence_transformers import SentenceTransformer
-from transformers import (
-    AutoTokenizer,
-    AutoModelForSequenceClassification
-)
-
 from google import genai
 from google.genai import types
-
-from supabase import create_client
-import psutil
-import os
-
-import uuid
-
-RUN_ID = uuid.uuid4()
-
-print(f"RUN ID : {RUN_ID}")
-print(f"PID = {os.getpid()}")
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s"
+from utils.resources import (
+    get_supabase,
+    load_resources
 )
 
-def log_step(msg):
-    print(f"[INFO] {msg}", flush=True)
 
-def show_ram(stage):
-    process = psutil.Process(os.getpid())
-    ram_mb = process.memory_info().rss / 1024 / 1024
+# =====================================================
+# LOAD RESOURCES
+# =====================================================
+supabase = get_supabase()
+resources = load_resources()
+df = resources["df"]
+faiss_index = resources["faiss_index"]
+retrieval_model = resources["retrieval_model"]
+tokenizer = resources["tokenizer"]
+rte_model = resources["rte_model"]
 
-    print("\n" + "="*60)
-    print(f"[RAM] {stage}")
-    print(f"PID : {os.getpid()}")
-    print(f"RAM : {ram_mb:.2f} MB")
-    print("="*60)
     
 # =====================================================
 # LOAD CSS
@@ -64,22 +41,6 @@ def show_ram(stage):
 def load_css(file_name):
     with open(file_name, encoding="utf-8") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
-@st.cache_resource
-def get_supabase():
-
-    try:
-        url = st.secrets["SUPABASE_URL"]
-        key = st.secrets["SUPABASE_KEY"]
-
-        return create_client(url, key)
-
-    except Exception as e:
-        st.error(f"Supabase Error: {e}")
-        return None
-
-supabase = get_supabase()
-
 
 # =====================================================
 # AUTH FUNCTIONS
@@ -377,111 +338,6 @@ if st.session_state.user is None:
 
     st.stop()
 
-
-# =====================================================
-# LOAD RESOURCES
-# =====================================================
-@st.cache_resource
-def load_resources():
-    print("LOAD RESOURCES EXECUTED")
-
-    log_step("START LOAD RESOURCES")
-
-    # NLTK
-    log_step("Checking NLTK punkt")
-
-    try:
-        nltk.data.find('tokenizers/punkt')
-    except LookupError:
-        log_step("Downloading punkt")
-        nltk.download('punkt')
-
-    try:
-        nltk.data.find('tokenizers/punkt_tab')
-    except LookupError:
-        log_step("Downloading punkt_tab")
-        nltk.download('punkt_tab')
-
-    # JSON
-    show_ram("START")
-    log_step("Loading knowledge-base.json")
-    show_ram("AFTER JSON")
-
-    # =========================
-    # KNOWLEDGE BASE
-    # =========================
-    df = pd.read_json("knowledge-base.json")
-    log_step(f"Knowledge base loaded: {len(df)} rows")
-
-        # EMBEDDING
-    log_step("Loading embeddings")
-    embeddings = np.load("embeddingsDown.npy")
-    show_ram("AFTER EMBEDDINGS")
-    log_step(
-        f"Embeddings loaded shape={embeddings.shape}"
-    )
-
-    # FAISS
-    log_step("Loading FAISS index")
-    index = faiss.read_index("faissDown.index")
-    show_ram("AFTER FAISS")
-    log_step(
-        f"FAISS loaded total vectors={index.ntotal}"
-    )
-    
-
-    # =========================
-    # RETRIEVAL MODEL
-    # =========================
-    log_step("Loading SentenceTransformer")
-    retrieval_model = SentenceTransformer(
-        "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-    )
-    show_ram("AFTER RETRIEVAL MODEL")
-    log_step("SentenceTransformer loaded")
-
-    
-
-    # =========================
-    # RTE MODEL
-    # =========================
-    # TOKENIZER
-    log_step("Loading tokenizer")
-    tokenizer = AutoTokenizer.from_pretrained("gekesa/rte")
-    show_ram("AFTER TOKENIZER")
-    log_step("Tokenizer loaded")
-
-    # MODEL
-    log_step("Loading RTE model")
-    rte_model = AutoModelForSequenceClassification.from_pretrained(
-        "gekesa/rte"
-    )
-    show_ram("AFTER RTE MODEL")
-
-    show_ram("FINISHED")
-    log_step("RTE model loaded")
-    log_step("LOAD RESOURCES FINISHED")
-
-    rte_model.eval()
-
-    return (
-        df,
-        embeddings,
-        index,
-        retrieval_model,
-        tokenizer,
-        rte_model
-    )
-
-(
-    df,
-    embeddings,
-    faiss_index,
-    retrieval_model,
-    tokenizer,
-    rte_model
-) = load_resources()
-
 # =====================================================
 # GEMINI FALLBACK API SYSTEM
 # =====================================================
@@ -663,8 +519,6 @@ def rebuild_query_from_feedback(
             prompt,
             temperature=0.1
         )
-
-        return res.text.strip()
 
     except:
         return feedback_text
@@ -1148,14 +1002,10 @@ if question := st.chat_input("Tulis pertanyaan..."):
             )
         else:
 
-            context_start = time.time()
-
             query = contextualize_question(
                 history_text,
                 question
             )
-
-            context_time = time.time() - context_start
 
         # =========================
         # TOKEN INFO
@@ -1366,7 +1216,6 @@ if question := st.chat_input("Tulis pertanyaan..."):
         # =========================
         # GEMINI PARAPHRASE
         # =========================
-        paraphrase_start = time.time()
 
         final_answer = paraphrase_answer(
             question,
@@ -1378,8 +1227,6 @@ if question := st.chat_input("Tulis pertanyaan..."):
             "predict": final_answer,
             "url": url
 }
-
-        paraphrase_time = time.time() - paraphrase_start
 
         # =========================
         # DEBUG INFO
