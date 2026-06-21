@@ -11,6 +11,7 @@ import numpy as np
 import time
 from groq import Groq
 from utils.resources import load_resources
+import re
 
 
 # =====================================================
@@ -65,6 +66,14 @@ def generate_qwen_content(
 
     return response.choices[0].message.content.strip()
 
+
+def clean_qwen_response(text):
+    return re.sub(
+        r"<think>.*?</think>",
+        "",
+        text,
+        flags=re.DOTALL
+    ).strip()
 
 # =====================================================
 # RESULT STATE
@@ -199,12 +208,18 @@ if (
     """
 
     try:
+
         answer_qwen = generate_qwen_content(
             qwen_prompt,
             temperature=0.4
         )
 
+        answer_qwen = clean_qwen_response(
+            answer_qwen
+        )
+
     except Exception as e:
+
         answer_qwen = (
             f"Error Qwen API: {str(e)}"
         )
