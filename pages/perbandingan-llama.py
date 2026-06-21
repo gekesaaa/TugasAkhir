@@ -165,7 +165,7 @@ result = st.session_state.get(
 )
 
 # =====================================================
-# GENERATE GEMINI + SIMILARITY
+# GENERATE Llama + SIMILARITY
 # =====================================================
 if (
     result is not None
@@ -307,7 +307,7 @@ with col_llama:
 
     st.markdown(
         '''
-        <div class="column-title-label label-llama">
+        <div class="column-title-label label-gemini">
         Hasil Llama
         </div>
         ''',
