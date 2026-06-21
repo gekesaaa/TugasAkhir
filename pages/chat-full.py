@@ -793,8 +793,11 @@ else:
                         "predict": last_answer,
                         "url": None
                     }
+                    # st.switch_page(
+                    #     "pages/perbandingan-gemini.py"
+                    # )
                     st.switch_page(
-                        "pages/perbandingan-hasil.py"
+                        "pages/perbandingan-llama.py"
                     )
 
 
